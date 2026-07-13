@@ -38,7 +38,7 @@ async def health():
 
 @app.get("/")
 async def root():
-    return {"service": "IP Geolocation API", "version": "1.1.0"}
+    return {"service": "IP Geolocation API", "version": "1.1.0", "related": ["Domain WHOIS API", "Places Search API"]}
 
 @app.get("/lookup", response_model=IPResult)
 async def lookup(ip: str = Query("", description="IP address. Leave empty for your own IP.")):
