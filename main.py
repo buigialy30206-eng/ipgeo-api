@@ -3,35 +3,18 @@ IP Geolocation API
 Free IP-to-location lookup.
 """
 import subprocess, json as _json, time, threading
-from fastapi import FastAPI, Depends, Query
+from fastapi import Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-
-import time as _t, threading as _th
-_rl_win, _rl_max, _rl_hits, _rl_lk = 60, 60, {}, _th.Lock()
-
-async def _rate_limit(request):
-    from fastapi import Request, HTTPException
-    ip = (request.headers.get('X-Forwarded-For','') or request.headers.get('X-Real-IP','') or (request.client.host if request.client else '127.0.0.1')).split(',')[0].strip()
-    now = _t.time()
-    with _rl_lk:
-        e = _rl_hits.get(ip)
-        if e:
-            if now - e['s'] > _rl_win: e['s'], e['c'] = now, 1
-            else:
-                e['c'] += 1
-                if e['c'] > _rl_max: raise HTTPException(429, 'Too many requests')
-        else: _rl_hits[ip] = {'s': now, 'c': 1}
-    return True
+from ratelimit import RateLimitMiddleware
 
 app = FastAPI(title="IP Geolocation API", version="1.1.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
-
+app.add_middleware(RateLimitMiddleware)
 
 _cache = {}
 _cache_lock = threading.Lock()
 CACHE_TTL = 3600  # 1 hour
-
 
 class IPResult(BaseModel):
     ip: str
@@ -43,7 +26,6 @@ class IPResult(BaseModel):
     timezone: str = ""
     error: str = ""
 
-
 def curl_get(url: str) -> dict:
     cmd = ["curl", "-s", "--connect-timeout", "5", "--max-time", "8", url]
     try:
@@ -52,16 +34,13 @@ def curl_get(url: str) -> dict:
     except:
         return {}
 
-
 @app.api_route("/health", methods=["GET", "HEAD"])
 async def health():
     return {"status": "ok", "cache_size": len(_cache)}
 
-
 @app.get("/")
 async def root():
     return {"service": "IP Geolocation API", "version": "1.1.0"}
-
 
 @app.get("/lookup", response_model=IPResult)
 async def lookup(ip: str = Query("", description="IP address. Leave empty for your own IP.")):
