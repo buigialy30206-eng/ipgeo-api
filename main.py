@@ -6,11 +6,9 @@ import subprocess, json as _json, time, threading
 from fastapi import Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from ratelimit import RateLimitMiddleware
 
 app = FastAPI(title="IP Geolocation API", version="1.1.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
-app.add_middleware(RateLimitMiddleware)
 
 _cache = {}
 _cache_lock = threading.Lock()
