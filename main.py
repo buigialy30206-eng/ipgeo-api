@@ -3,7 +3,7 @@ IP Geolocation API
 Free IP-to-location lookup.
 """
 import subprocess, json as _json, time, threading
-from fastapi import Query
+from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
